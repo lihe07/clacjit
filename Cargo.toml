@@ -1,0 +1,8 @@
+[package]
+name = "clacjit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argh = "0.1.12"
+dynasmrt = "2.0.0"
