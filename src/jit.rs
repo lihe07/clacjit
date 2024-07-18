@@ -23,6 +23,26 @@ macro_rules! pop_to_eax {
     };
 }
 
+///// This function shall take care of non-volatile regs
+#[no_mangle]
+#[inline(never)]
+pub extern "win64" fn take_care_of_regs(code: Code, state: &mut State) {
+    use std::arch::asm;
+
+    unsafe {
+        // Push non-volatile registers
+        // RBX, RBP, RDI, RSI, RSP, R12, R13, R14, R15
+        asm!(
+            "push rbx", "push rbp", "push rdi", "push rsi", "push r12", "push r13", "push r14",
+            "push r15"
+        );
+        code(state);
+        asm!(
+            "pop r15", "pop r14", "pop r13", "pop r12", "pop rsi", "pop rdi", "pop rbp", "pop rbx"
+        );
+    }
+}
+
 extern "win64" fn print(state: &mut State) {
     println!("{}", state.must_pop());
 }
@@ -99,7 +119,11 @@ impl DefsMap {
     }
 }
 
-pub fn compile(queue: Queue<Token>, defs: &mut DefsMap) -> extern "win64" fn(&mut State) {
+pub fn compile(
+    queue: Queue<Token>,
+    def_name: Option<&str>, // Optional. If provided, we can do tail-recursion optimization
+    defs: &mut DefsMap,
+) -> extern "win64" fn(&mut State) {
     use Token::*;
 
     let mut ops = dynasmrt::x64::Assembler::new().unwrap();
@@ -109,13 +133,15 @@ pub fn compile(queue: Queue<Token>, defs: &mut DefsMap) -> extern "win64" fn(&mu
     // Prelude
     dynasm!(ops
         ; .arch x64
-        ; push rbp
+        ; push rbp // Save rbp
         ; mov rbp, rsp
-        ; sub rsp, BYTE 16 // Some multiple of 16
 
         // state* is passed in rcx
         // move it to a non-volatile register: rdi
         ; mov rdi, rcx
+
+        // Label: entry
+        ;entry:
     );
 
     // Stores the offset before each token
@@ -367,6 +393,18 @@ pub fn compile(queue: Queue<Token>, defs: &mut DefsMap) -> extern "win64" fn(&mu
                 panic!("Can not compile definition tokens");
             }
             Custom(name) => {
+                // Check if is doing tail recursion
+                if let Some(def_name) = def_name {
+                    if name == def_name {
+                        println!("Tail recursion optimization enabled for {}", name);
+                        // Tail recursion optimization
+                        dynasm!(ops
+                            ; jmp <entry
+                        );
+                        continue;
+                    }
+                }
+
                 let first_pointer = defs.get_first_or_reserve(name.clone());
                 // Leak the name to make it live long enough
                 let ptr_name = name.clone().into_bytes().leak();
@@ -387,7 +425,7 @@ pub fn compile(queue: Queue<Token>, defs: &mut DefsMap) -> extern "win64" fn(&mu
 
     let end = ops.offset();
     dynasm!(ops
-    // Epilogue
+        // Epilogue
         ; leave
         ; ret
     );

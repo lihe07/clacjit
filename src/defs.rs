@@ -1,18 +1,19 @@
-use std::collections::LinkedList;
+use std::collections::{LinkedList, VecDeque};
 
-pub struct Stack<T>(LinkedList<T>);
+// pub struct Stack<T>(LinkedList<T>);
+pub struct Stack<T>(Vec<T>);
 
 impl<T> Stack<T> {
     pub fn new() -> Self {
-        Self(LinkedList::new())
+        Self(Vec::new())
     }
 
     pub fn push(&mut self, value: T) {
-        self.0.push_back(value);
+        self.0.push(value);
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        self.0.pop_back()
+        self.0.pop()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -25,19 +26,21 @@ impl<T> Stack<T> {
 
     /// Pick the nth element from the top of the stack
     pub fn pick(&self, n: usize) -> Option<&T> {
-        self.0.iter().rev().nth(n)
+        // self.0.iter().rev().nth(n)
+        self.0.get(self.0.len() - n - 1)
     }
 
-    pub fn iter(&self) -> std::collections::linked_list::Iter<T> {
+    pub fn iter(&self) -> std::slice::Iter<'_, T> {
         self.0.iter()
     }
 }
 
-pub struct Queue<T>(LinkedList<T>);
+// pub struct Queue<T>(LinkedList<T>);
+pub struct Queue<T>(VecDeque<T>);
 
 impl<T> Queue<T> {
     pub fn new() -> Self {
-        Self(LinkedList::new())
+        Self(VecDeque::new())
     }
     pub fn push(&mut self, value: T) {
         self.0.push_back(value);
@@ -53,14 +56,14 @@ impl<T> Queue<T> {
         self.0.len()
     }
 
-    pub fn iter(&self) -> std::collections::linked_list::Iter<T> {
+    pub fn iter(&self) -> std::collections::vec_deque::Iter<T> {
         self.0.iter()
     }
 }
 
 pub enum TheQueue {
     Real(Queue<Token>),
-    Iter(std::collections::linked_list::Iter<'static, Token>),
+    Iter(std::collections::vec_deque::Iter<'static, Token>),
     None, // This should only be temp
 }
 

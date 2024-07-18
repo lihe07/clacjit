@@ -34,7 +34,6 @@ impl State {
     }
 
     extern "win64" fn must_pop(&mut self) -> i32 {
-        // println!("Popping {:?}", &self.stack as *const _);
         self.stack.pop().unwrap_or_else(|| {
             eprintln!("Stack underflow");
             std::process::exit(1);
@@ -42,8 +41,6 @@ impl State {
     }
 
     extern "win64" fn push(&mut self, value: i32) {
-        // let ptr = &mut self.stack as *mut _;
-        // println!("Pushing {} to {:?}", value, ptr);
         self.stack.push(value);
     }
 
@@ -259,9 +256,12 @@ pub fn eval(state: &mut State, jit: bool) {
                     error!("Empty definition");
                 }
                 if let Custom(name) = &def.pop().unwrap() {
+                    if name == "comment" {
+                        continue;
+                    }
                     if jit {
                         println!("Compiling {}...", name);
-                        let code = jit::compile(def, &mut state.jitted);
+                        let code = jit::compile(def, Some(name), &mut state.jitted);
                         state.jitted.fill(name, code);
                     } else {
                         state.defs.insert(name.clone(), def);
@@ -280,7 +280,8 @@ pub fn eval(state: &mut State, jit: bool) {
                 } else {
                     if jit {
                         if let Some(code) = state.jitted.get_second(&name) {
-                            code(state);
+                            jit::take_care_of_regs(code, state);
+                            // code(state);
                             continue;
                         }
                     }
