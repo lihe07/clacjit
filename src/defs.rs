@@ -1,4 +1,4 @@
-use std::collections::{LinkedList, VecDeque};
+use std::collections::VecDeque;
 
 // pub struct Stack<T>(LinkedList<T>);
 pub struct Stack<T>(Vec<T>);

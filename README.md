@@ -30,8 +30,10 @@ Run my MNIST implementation in clac:
 
 - With JIT: `cargo r ./clac/mnist.clac ./clac/mnist-main.clac --jit`
 
-  Takes 3.84s
+  Takes: 53.2 ms ± 5.9 ms
 
 - Without JIT: `cargo r ./clac/mnist.clac ./clac/mnist-main.clac`
 
-  Takes 5.14s
+  Takes: 142.4 ms ± 14.0 ms
+
+As a comparison, `clac-ref` takes 36.871 s.
